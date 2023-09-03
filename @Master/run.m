@@ -1,0 +1,38 @@
+function parameters = run(master)
+    assert(class(master) == "Master");
+    ADCvalues = master.setGetNout(10);
+
+    parameters.Vc = ADCvalues(2+1)*master.ADCbinToVolt(2+1);
+    parameters.Vb = ADCvalues(4+1)*master.ADCbinToVolt(4+1);
+    parameters.Ve = ADCvalues(5+1)*master.ADCbinToVolt(5+1);
+    parameters.VRc0 = ADCvalues(1+1)*master.ADCbinToVolt(1+1);
+    parameters.VRc1 = ADCvalues(0+1)*master.ADCbinToVolt(0+1);
+    parameters.VRb = ADCvalues(3+1)*master.ADCbinToVolt(3+1);
+    parameters.Ic = (parameters.VRc0 - parameters.Vc)/1000 ...
+        +           (parameters.VRc1 - parameters.Vc)/10;
+    parameters.Ib = (parameters.VRb - parameters.Vb)/100;
+    parameters.Ie = -1*parameters.Ic - parameters.Ib;
+    parameters.Vce = parameters.Vc - parameters.Ve;
+    parameters.Vbe = parameters.Vb - parameters.Ve;
+
+    parameters.DAC0 = master.DAC0;
+    parameters.DAC1 = master.DAC1;
+    parameters.ADCvalues = ADCvalues;
+    parameters.switches = master.switches;
+
+    if (master.operatingMode == "MEAS")
+        parameters.mode = master.mode;
+        parameters.RC = master.RC;
+        if (parameters.mode == "P")
+            parameters.collectorLevel = master.collectorLevel;
+        else
+            parameters.collectorLevel = -1;
+        end
+
+        master.updateCircuit(parameters);
+    else
+        parameters.mode = "-";
+        parameters.RC = master.RC;
+        parameters.collectorLevel = -1;
+    end
+end

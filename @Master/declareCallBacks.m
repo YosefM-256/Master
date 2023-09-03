@@ -1,0 +1,212 @@
+function declareCallBacks(master)
+    assert(class(master)=="Master");
+
+%     master.constantCircuitUpdateSwitch.ValueChangedFcn = constantCircuitUpdateSwitchCallBack;
+
+    master.WILDoperatingmodeButton.ButtonPushedFcn = @(~,~) WILDbuttonCallback(master);
+    master.MEASoperatingmodeButton.ButtonPushedFcn = @(~,~) MEASbuttonCallback(master);
+    addlistener(master,'operatingMode','PostSet',@(~,~) operatingModeListener(master));
+
+    master.PmodeButton.ButtonPushedFcn = @(~,~) PmodebuttonCallBack(master);
+    master.NmodeButton.ButtonPushedFcn = @(~,~) NmodebuttonCallBack(master);
+    addlistener(master,'mode','PostSet',@(~,~) modeListener(master));
+
+    master.RC10Button.ButtonPushedFcn = @(~,~) RC10ButtonCallBack(master);
+    master.RC1kButton.ButtonPushedFcn = @(~,~) RC1kButtonCallBack(master);
+    addlistener(master,'RC','PostSet',@(~,~) RCListener(master));
+
+    master.highCollectorButton.ButtonPushedFcn = @(~,~) highCollectorButtonCallBack(master);
+    master.groundedCollectorButton.ButtonPushedFcn = @(~,~) groundedCollectorButtonCallBack(master);
+    addlistener(master,'collectorLevel','PostSet',@(~,~) collectorLevelListener(master));
+
+    master.DAC0display.ValueChangedFcn = @(~,~) DAC0displayCallBack(master);
+    addlistener(master,'DAC0','PostSet',@(~,~) DAC0displayListener(master));
+    master.DAC1display.ValueChangedFcn = @(~,~) DAC1displayCallBack(master);
+    addlistener(master,'DAC1','PostSet',@(~,~) DAC1displayListener(master));
+
+    master.RunButton.ButtonPushedFcn = @(~,~) runButtonCallback(master);
+
+    master.tuneButton.ButtonPushedFcn = @(~,~) tuneButtonCallBack(master);
+
+    master.precisionDisplay.ValueChangedFcn = @(~,~) precisionDisplayCallBack(master);
+    addlistener(master,'precision','PostSet',@(~,~) precisionDisplayListener(master));
+
+    master.delayDisplay.ValueChangedFcn = @(~,~) delayDisplayCallBack(master);
+    addlistener(master,'delay','PostSet',@(~,~) delayDisplayListener(master));
+
+    operatingModeListener(master);
+    modeListener(master);
+    RCListener(master);
+    collectorLevelListener(master);
+    DAC0displayListener(master);
+    DAC1displayListener(master);
+    delayDisplayListener(master);
+    precisionDisplayListener(master);
+end
+
+function constantCircuitUpdateSwitchCallBack(master,~)
+    master.constantCircuitUpdate = (master.constantCircuitUpdateSwitch.Value == 'On');
+end
+
+function constantCircuitUpdateSwitchListener(master,~)
+    if (master.constantCircuitUpdate)
+        master.constantCircuitUpdateSwitch.Value = 'On';
+    else
+        master.constantCircuitUpdateSwitch.Value = 'Off';
+    end
+end
+
+function WILDbuttonCallback(master,~)
+    if (master.operatingMode == "MEAS")
+        master.setOPmode("WILD");
+    end
+end
+
+function MEASbuttonCallback(master,~)
+    if (master.operatingMode == "WILD")
+        master.setOPmode("MEAS");
+    end
+end
+
+function operatingModeListener(master,~)
+    switch (master.operatingMode)
+        case "MEAS"
+            master.MEASoperatingmodeButton.BackgroundColor = 'g';
+            master.WILDoperatingmodeButton.BackgroundColor = [.96 .96 .96];
+        case "WILD"
+            master.MEASoperatingmodeButton.BackgroundColor = [.96 .96 .96];
+            master.WILDoperatingmodeButton.BackgroundColor = [1 .647 0];            
+    end
+end
+
+function PmodebuttonCallBack(master,~)
+    if (master.mode == "N")
+        master.setMode("P");
+    end
+end
+
+function NmodebuttonCallBack(master,~)
+    if (master.mode == "P")
+        master.setMode("N");
+    end
+end
+
+function modeListener(master,~)
+    switch (master.mode)
+        case "N"
+            master.NmodeButton.BackgroundColor = [.6 1 .6];
+            master.PmodeButton.BackgroundColor = [.96 .96 .96];
+        case "P"
+            master.NmodeButton.BackgroundColor = [.96 .96 .96];
+            master.PmodeButton.BackgroundColor = [.6 1 .6];      
+    end
+end
+
+function RC10ButtonCallBack(master,~)
+    if (master.RC == 0)
+        master.setRC(1);
+    end
+end
+
+function RC1kButtonCallBack(master,~)
+    if (master.RC == 1)
+        master.setRC(0);
+    end
+end
+
+function RCListener(master,~)
+    switch (master.RC)
+        case 0
+            master.RC1kButton.BackgroundColor = [.6 1 .6];
+            master.RC10Button.BackgroundColor = [.96 .96 .96];
+        case 1
+            master.RC1kButton.BackgroundColor = [.96 .96 .96];
+            master.RC10Button.BackgroundColor = [.6 1 .6];      
+    end
+end
+
+function highCollectorButtonCallBack(master,~)
+    if (master.collectorLevel == 0)
+        master.setCollectorLevel(1);
+    end
+end
+
+function groundedCollectorButtonCallBack(master,~)
+    if (master.collectorLevel == 1)
+        master.setCollectorLevel(0);
+    end
+end
+
+function collectorLevelListener(master,~)
+    switch (master.collectorLevel)
+        case 0
+            master.groundedCollectorButton.BackgroundColor = [.6 1 .6];
+            master.highCollectorButton.BackgroundColor = [.96 .96 .96];
+        case 1
+            master.groundedCollectorButton.BackgroundColor = [.96 .96 .96];
+            master.highCollectorButton.BackgroundColor = [.6 1 .6];      
+    end
+end
+
+function DAC0displayCallBack(master,~)
+    value = master.DAC0display.Value;
+    master.setDAC(0,value);
+end
+
+function DAC0displayListener(master,~)
+    value = master.DAC0;
+    master.DAC0display.Value = value;
+end
+
+function DAC1displayCallBack(master,~)
+    value = master.DAC1display.Value;
+    master.setDAC(1,value);
+end
+
+function DAC1displayListener(master,~)
+    value = master.DAC1;
+    master.DAC1display.Value = value;
+end
+
+function runButtonCallback(master,~)
+    master.run();
+end
+
+function tuneButtonCallBack(master,~)
+    parameter = master.tuneDropDown.Value;
+    DAC = master.variableDACDropDown.Value;
+    target = master.targetValueDisplay.Value;
+    relation = master.relationDropDown.Value;
+    alpha = master.alphaDisplay.Value;
+    beta = master.betaDisplay.Value;
+    master.tune(parameter,DAC,target,relation,alpha,beta);
+end
+
+function precisionDisplayCallBack(master,~)
+    master.precision = str2num(master.precisionDisplay.Value);
+end
+
+function precisionDisplayListener(master,~)
+    master.precisionDisplay.Value = string(master.precision);
+end
+
+function delayDisplayCallBack(master,~)
+    master.delay = master.delayDisplay.Value;
+end
+
+function delayDisplayListener(master,~)
+    master.delayDisplay.Value = master.delay;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+

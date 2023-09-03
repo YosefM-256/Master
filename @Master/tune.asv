@@ -1,0 +1,135 @@
+function [msg,points] = tune(master, tune, by, target, relation, alpha, decayCoefficient, maxDAC)
+    assert(class(master) == "Master");
+    mustBeMember(tune, {'Ib','Vb','Ic','Vc','Ie','beta','Vce','Vbe'});
+    mustBeMember(by, {'DAC0', 'DAC1'});
+    mustBeNumeric(target);
+    mustBeMember(relation, {'Direct', 'Inverse'});
+    mustBeNumeric(alpha);
+    mustBeGreaterThan(alpha,1);
+    mustBeNumeric(decayCoefficient);
+    mustBeInRange(decayCoefficient,0,1);
+    
+    if ~exist('maxDAC','var')
+        maxDAC = 4095;
+    end
+
+    points = {};
+    jump = alpha;
+    if relation == "direct" inf=1; else inf=-1; end;
+    if ((target-getState())*inf > 0) direction = 1; else direction = -1; end;
+    msg = "SUCCESS";
+    
+    informTuningDisplay();
+
+    while true
+        projection = ceil(getDAC()+jump*direction);
+        if projection < 0
+            jump = getDAC()-0;
+            setDAC(0);
+        elseif projection > maxDAC
+            jump = maxDAC-getDAC(); 
+            setDAC(maxDAC);
+        else
+            setDAC(projection);
+        end
+        state = getState();
+        
+        if (target - state)*inf*direction < 0
+            break;
+        end
+        if getDAC() == maxDAC && direction > 0
+            msg = "TOP BREACH";
+            return;
+        end
+        if getDAC() == 0 && direction < 0
+            msg = "BOTTOM BREACH";
+            return;
+        end 
+        jump = ceil(jump*alpha);
+        updatePlots();
+    end
+    
+    while jump > 1
+        jump = floor(jump*decayCoefficient);
+        state = getState();
+        if (target - state)*inf > 0 direction=1; else direction=-1; end;
+        setDAC(getDAC() + jump*direction);
+    end
+
+    getState();
+    errors = []; DACvalues = [];
+    for i = max((getDAC-2),0) : min((getDAC+2),maxDAC)
+        setDAC(i);
+        state = getState();
+        errors(end + 1) = abs(state - target);
+        DACvalues(end + 1) = i;
+    end
+    [~, minErrorIndex] = min(errors);
+    setDAC(DACvalues(minErrorIndex));
+
+    function state = getState()
+        result = master.run();
+        points{end+1} = result;
+        state = result.(tune);
+    end
+
+    function state = getDAC
+        if (by == "DAC0")
+            state = master.DAC0;
+        else
+            state = master.DAC1;
+        end
+    end
+    
+    function setDAC(DACvalue)
+        mustBeInteger(DACvalue);
+        mustBeInRange(DACvalue,0,maxDAC);
+        if (by == "DAC0")
+            master.setDAC(0,DACvalue);
+        elseif by == "DAC1"
+            master.setDAC(1,DACvalue);
+        end
+    end
+
+    function updatePlots()
+        pointsMat = cell2mat(points);
+        plot(master.DACAxis,[pointsMat.(by)],'Marker','o','MarkerS);
+    end
+
+    function informTuningDisplay()
+        master.variableDACDropDown.Value = by;
+        master.tuneDropDown.Value = tune;
+        master.targetValueDisplay.Value = target;
+        master.relationDropDown.Value = relation;
+        master.alphaDisplay.Value = alpha;
+        master.betaDisplay.Value = decayCoefficient;
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
